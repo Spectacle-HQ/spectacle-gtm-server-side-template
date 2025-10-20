@@ -651,16 +651,6 @@ function handleTrack() {
     properties.currency = data.currency;
   }
 
-  // Extract GA4 ecommerce data if available
-  const value = getEventData('value');
-  const currency = getEventData('currency');
-  if (value && !properties.revenue) {
-    properties.revenue = value * 100; // Convert to cents
-  }
-  if (currency && !properties.currency) {
-    properties.currency = currency;
-  }
-
   // Add custom properties from template
   if (data.eventProperties && getType(data.eventProperties) === 'array') {
     for (let i = 0; i < data.eventProperties.length; i++) {
