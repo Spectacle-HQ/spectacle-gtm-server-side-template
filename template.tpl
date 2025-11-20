@@ -210,28 +210,82 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
-    "type": "TEXT",
-    "name": "revenue",
-    "displayName": "Revenue (in cents)",
-    "simpleValueType": true,
+    "type": "GROUP",
+    "name": "revenueSettings",
+    "displayName": "Revenue",
+    "groupStyle": "ZIPPY_OPEN",
     "enablingConditions": [
       {
         "paramName": "methodType",
         "paramValue": "track",
         "type": "EQUALS"
       }
-    ]
-  },
-  {
-    "type": "TEXT",
-    "name": "currency",
-    "displayName": "Currency",
-    "simpleValueType": true,
-    "enablingConditions": [
+    ],
+    "subParams": [
       {
-        "paramName": "methodType",
-        "paramValue": "track",
-        "type": "EQUALS"
+        "type": "RADIO",
+        "name": "revenueFormat",
+        "displayName": "Revenue format",
+        "radioItems": [
+          {
+            "value": "majorUnits",
+            "displayValue": "Full amount - (Major units, e.g., 99.95)"
+          },
+          {
+            "value": "cents",
+            "displayValue": "Cents - (Minor units e.g., 9995)"
+          }
+        ],
+        "simpleValueType": true,
+        "defaultValue": "majorUnits",
+        "enablingConditions": [
+          {
+            "paramName": "methodType",
+            "paramValue": "track",
+            "type": "EQUALS"
+          }
+        ]
+      },
+      {
+        "type": "TEXT",
+        "name": "revenueMajorUnits",
+        "displayName": "Revenue Amount",
+        "simpleValueType": true,
+        "valueHint": "99.95",
+        "enablingConditions": [
+          {
+            "paramName": "revenueFormat",
+            "paramValue": "majorUnits",
+            "type": "EQUALS"
+          }
+        ]
+      },
+      {
+        "type": "TEXT",
+        "name": "revenue",
+        "displayName": "Revenue Amount",
+        "simpleValueType": true,
+        "valueHint": "9995",
+        "enablingConditions": [
+          {
+            "paramName": "revenueFormat",
+            "paramValue": "cents",
+            "type": "EQUALS"
+          }
+        ]
+      },
+      {
+        "type": "TEXT",
+        "name": "currency",
+        "displayName": "Currency",
+        "simpleValueType": true,
+        "enablingConditions": [
+          {
+            "paramName": "methodType",
+            "paramValue": "track",
+            "type": "EQUALS"
+          }
+        ]
       }
     ]
   },
@@ -333,6 +387,8 @@ const parseUrl = require('parseUrl');
 const getType = require('getType');
 const makeString = require('makeString');
 const makeInteger = require('makeInteger');
+const makeNumber = require('makeNumber');
+const Math = require('Math');
 
 // Constants matching your pixel implementation
 const ANON_COOKIE_KEY = 'sp__anon_id';
@@ -645,8 +701,13 @@ function handleTrack() {
 
   // Add revenue if present
   if (data.revenue) {
-    properties.revenue = data.revenue;
+    properties.revenue = Math.round(makeNumber(data.revenue)).toString();
   }
+
+  if (data.revenueFormat === 'majorUnits' && data.revenueMajorUnits) {
+    properties.revenue = Math.round(makeNumber(data.revenueMajorUnits) * 100).toString();
+  }
+
   if (data.currency) {
     properties.currency = data.currency;
   }
