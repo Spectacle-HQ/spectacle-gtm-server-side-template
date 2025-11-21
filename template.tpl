@@ -414,6 +414,7 @@ const Math = require('Math');
 // Constants matching your pixel implementation
 const ANON_COOKIE_KEY = 'sp__anon_id';
 const USER_COOKIE_KEY = 'sp__user_id';
+const TRANSACTION_DEDUP_COOKIE_KEY = 'sp__transaction_ids';
 const COOKIE_EXPIRY_DAYS = 365;
 
 /**
@@ -452,8 +453,6 @@ function getOrCreateAnonymousId() {
       logToConsole('Spectacle: Generated new anonymous ID:', anonymousId);
     }
   }
-
-
 
   // Set/refresh the cookie
   setCookie(ANON_COOKIE_KEY, anonymousId, {
@@ -501,11 +500,40 @@ function getCookieDomain(cookieDomain) {
     if (cookieDomain[0] !== '.') {
       cookieDomain = '.' + cookieDomain;
     }
-    logToConsole('Spectacle: final cookie domain:', cookieDomain);
+
     return cookieDomain;
   }
 
   return 'auto';
+}
+
+
+function getTransactionIds() {
+  const transactionIds = getCookieValues(TRANSACTION_DEDUP_COOKIE_KEY);
+  if (transactionIds && transactionIds.length > 0) {
+    return transactionIds[0].split(',');
+  }
+
+  return transactionIds ? transactionIds : [];
+}
+
+function hasTransactionId(transactionId) {
+  return getTransactionIds().indexOf(transactionId) > -1;
+}
+
+function storeTransactionId(transactionId) {
+  const transactionIds = getTransactionIds();
+  if (transactionIds.indexOf(transactionId) === -1) {
+    transactionIds.push(transactionId);
+  }
+
+  setCookie(TRANSACTION_DEDUP_COOKIE_KEY, transactionIds.join(','), {
+    domain: getCookieDomain(data.cookieDomain),
+    path: '/',
+    'max-age': COOKIE_EXPIRY_DAYS * 24 * 60 * 60,
+    secure: true,
+    sameSite: 'lax'
+  });
 }
 
 /**
@@ -738,6 +766,17 @@ function handleTrack() {
   const eventProperties = data.eventProperties && getType(data.eventProperties) === 'array' ? data.eventProperties : [];
 
   if (data.useGA4EcomData) {
+    const transactionId = getEventData('transaction_id');
+    if (transactionId) {
+      // Don't send duplicate transactions
+      if (hasTransactionId(transactionId)) {
+        return;
+      }
+
+      storeTransactionId(transactionId);
+      eventProperties.push({key: "transactionId", value: transactionId});
+    }
+
     const amount = makeNumber(getEventData('value'));
     if (amount >= 0) {
       if (eventName === "purchase") {
@@ -754,7 +793,6 @@ function handleTrack() {
       properties.currency = currency;
     }
 
-    const transactionId = getEventData('transaction_id');
     if (transactionId) {
       eventProperties.push({key: "transactionId", value: transactionId});
     }
@@ -946,6 +984,10 @@ ___SERVER_PERMISSIONS___
               {
                 "type": 1,
                 "string": "sp__user_id"
+              },
+              {
+                "type": 1,
+                "string": "sp__transaction_ids"
               }
             ]
           }
@@ -1059,7 +1101,54 @@ ___SERVER_PERMISSIONS___
                     "string": "any"
                   }
                 ]
-              }
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "sp__transaction_ids"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "/"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
             ]
           }
         }
