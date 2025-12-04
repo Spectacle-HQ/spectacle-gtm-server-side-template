@@ -70,6 +70,21 @@ ___TEMPLATE_PARAMETERS___
     "defaultValue": "page"
   },
   {
+    "type": "CHECKBOX",
+    "name": "lensEnabled",
+    "displayName": "Spectacle Lens",
+    "checkboxText": "Enable Lens",
+    "help": "Spectacle Lens can reveal company data of anonymous visitors. <a href='https://www.spectaclehq.com/docs/features/lens'>Learn more</a>",
+    "simpleValueType": true,
+    "enablingConditions": [
+      {
+        "paramName": "methodType",
+        "paramValue": "page",
+        "type": "EQUALS"
+      }
+    ]
+  },
+  {
     "type": "GROUP",
     "name": "advanced",
     "displayName": "Advanced Configuration",
@@ -410,6 +425,7 @@ const makeString = require('makeString');
 const makeInteger = require('makeInteger');
 const makeNumber = require('makeNumber');
 const Math = require('Math');
+const getRemoteAddress = require('getRemoteAddress');
 
 // Constants matching your pixel implementation
 const ANON_COOKIE_KEY = 'sp__anon_id';
@@ -621,6 +637,8 @@ function buildBasePayload(method) {
       page: pageContext,
       locale: locale
     },
+    ip: getRemoteAddress(),
+    lens: data.lensEnabled,
     userId: userId,
     anonymousId: anonymousId,
     writeKey: data.workspaceId,
