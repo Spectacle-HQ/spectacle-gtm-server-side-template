@@ -320,6 +320,20 @@ ___TEMPLATE_PARAMETERS___
                 "type": "EQUALS"
               }
             ]
+          },
+          {
+            "type": "TEXT",
+            "name": "transactionId",
+            "displayName": "Transaction id",
+            "simpleValueType": true,
+            "enablingConditions": [
+              {
+                "paramName": "methodType",
+                "paramValue": "track",
+                "type": "EQUALS"
+              }
+            ],
+            "help": "A unique transaction id. Used for de-duplication of events with revenue. If no transaction id is provided, Spectacle automatically uses a combination of the visitor id and timestamp as the transaction id. For refunds, make sure to use a different transaction id than the original transaction id being refunded."
           }
         ]
       }
@@ -779,9 +793,11 @@ function handleTrack() {
     if (data.currency) {
       properties.currency = data.currency;
     }
-  }
 
-  const eventProperties = data.eventProperties && getType(data.eventProperties) === 'array' ? data.eventProperties : [];
+    if (data.transactionId) {
+      properties.transactionId = data.transactionId;
+    }
+  }
 
   if (data.useGA4EcomData) {
     const transactionId = getEventData('transaction_id');
@@ -792,7 +808,7 @@ function handleTrack() {
       }
 
       storeTransactionId(transactionId);
-      eventProperties.push({key: "transactionId", value: transactionId});
+      properties.transactionId = transactionId;
     }
 
     const amount = makeNumber(getEventData('value'));
@@ -810,13 +826,11 @@ function handleTrack() {
     if (currency && currency.length === 3) {
       properties.currency = currency;
     }
-
-    if (transactionId) {
-      eventProperties.push({key: "transactionId", value: transactionId});
-    }
   }
 
   // Add custom properties from template
+  const eventProperties = data.eventProperties && getType(data.eventProperties) === 'array' ? data.eventProperties : [];
+
   for (let i = 0; i < eventProperties.length; i++) {
     const prop = eventProperties[i];
     if (prop.key && prop.value) {
