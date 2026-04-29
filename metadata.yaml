@@ -1,0 +1,15 @@
+homepage: "https://www.spectaclehq.com"
+documentation: "https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm"
+versions:
+  - sha: REPLACE_WITH_COMMIT_SHA
+    changeNotes: |
+      Initial release of Spectacle GTM Server-Side template
+
+      Features:
+        - Page tracking with custom properties
+        - User identification with traits
+        - Event tracking with properties and revenue
+        - Group/organization tracking
+        - Spectacle Lens support
+        - Transaction-id deduplication for revenue events
+        - Configurable API base URL and cookie domain
