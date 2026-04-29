@@ -1,7 +1,7 @@
 homepage: "https://www.spectaclehq.com"
 documentation: "https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm"
 versions:
-  - sha: 9276dd83f58c1e4f6a74fc26e378dd4657539b4e
+  - sha: 8134ecaf8d04593474a29920fd5a8ec89d091fe2
     changeNotes: |
       Initial release of Spectacle GTM Server-Side template
 
