@@ -1,6 +1,13 @@
 homepage: "https://www.spectaclehq.com"
 documentation: "https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm"
 versions:
+  - sha: f6510db847c0a59ae37be0174058b0f9ae8870cf
+    changeNotes: |
+      Fixed the template failing to import
+
+        - A trailing comma in the permissions made the file invalid json, so
+          Tag Manager rejected it outright. This is the first version that can
+          be imported at all.
   - sha: 68e7fc5693d9179a641d3f22f4265b500000265d
     changeNotes: |
       Recognise a visitor the container cannot see a cookie for
