@@ -881,7 +881,7 @@ function handleTrack() {
       }
     }
 
-    const currency = getEventData('value');
+    const currency = getEventData('currency');
     if (currency && currency.length === 3) {
       properties.currency = currency;
     }
