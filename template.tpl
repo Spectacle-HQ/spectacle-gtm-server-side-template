@@ -125,6 +125,13 @@ ___TEMPLATE_PARAMETERS___
         "displayName": "Cookie Domain",
         "simpleValueType": true,
         "help": "Leave empty for auto-detection (e.g., \u0027.example.com\u0027)"
+      },
+      {
+        "type": "TEXT",
+        "name": "anonymousId",
+        "displayName": "Anonymous id",
+        "simpleValueType": true,
+        "help": "Only needed when the event reaches this container from somewhere that cannot send the visitor\u0027s cookie, such as a Shopify custom pixel. Leave empty to use the sp_anonymous_id event parameter if the event carries one, then the sp__anon_id cookie."
       }
     ]
   },
@@ -455,6 +462,7 @@ const getRemoteAddress = require('getRemoteAddress');
 const ANON_COOKIE_KEY = 'sp__anon_id';
 const USER_COOKIE_KEY = 'sp__user_id';
 const TRANSACTION_DEDUP_COOKIE_KEY = 'sp__transaction_ids';
+const ANON_ID_EVENT_KEY = 'sp_anonymous_id';
 const COOKIE_EXPIRY_DAYS = 365;
 
 /**
@@ -472,15 +480,56 @@ function generateAnonymousId() {
 }
 
 /**
+ * Get the anonymous ID supplied with the event, if there is one.
+ *
+ * getCookieValues only sees the cookies the browser chose to send with this
+ * one request, so a host that cannot send them has no way to be recognised:
+ * a Shopify custom pixel runs in a sandboxed frame, and its request here is
+ * cross-site, so sp__anon_id never arrives and every order would look like a
+ * brand new visitor. Such a host can read the id where it is able to --
+ * browser.cookie.get() in Shopify's case -- and pass it to this tag, which is
+ * the only thing that joins the order to the visit that caused it.
+ *
+ * The id may arrive two ways. The tag field is the explicit override, for a
+ * setup nobody anticipated. The sp_anonymous_id event parameter is the one our
+ * own integration code uses: a snippet we ship can put the id on the event and
+ * work in any container without the merchant configuring this tag at all. The
+ * parameter is deliberately not named with an `x-` prefix, which Google
+ * reserves for its own internal parameters.
+ *
+ * A supplied id is deliberate configuration either way, so it wins over the
+ * cookie and is written back, leaving one id in play rather than two.
+ */
+function getSuppliedAnonymousId() {
+  const supplied = data.anonymousId || getEventData(ANON_ID_EVENT_KEY);
+  if (!supplied) {
+    return null;
+  }
+
+  const value = makeString(supplied);
+  return value.length > 0 ? value : null;
+}
+
+/**
  * Get or create anonymous ID
  */
 function getOrCreateAnonymousId() {
-  // Try to get existing anonymous ID from cookies
-  let anonymousId;
+  let anonymousId = getSuppliedAnonymousId();
 
   const anonCookieValues = getCookieValues(ANON_COOKIE_KEY);
-  if (anonCookieValues && anonCookieValues.length > 0) {
-    anonymousId = anonCookieValues[0];
+  const cookieAnonymousId =
+    anonCookieValues && anonCookieValues.length > 0 ? anonCookieValues[0] : null;
+
+  if (data.debugMode && anonymousId && cookieAnonymousId && anonymousId !== cookieAnonymousId) {
+    logToConsole(
+      'Spectacle: Supplied anonymous ID differs from the cookie, using the supplied one:',
+      anonymousId,
+      cookieAnonymousId
+    );
+  }
+
+  if (!anonymousId && cookieAnonymousId) {
+    anonymousId = cookieAnonymousId;
     if (data.debugMode) {
       logToConsole('Spectacle: Found existing anonymous ID:', anonymousId);
     }
@@ -832,7 +881,7 @@ function handleTrack() {
       }
     }
 
-    const currency = getEventData('value');
+    const currency = getEventData('currency');
     if (currency && currency.length === 3) {
       properties.currency = currency;
     }
