@@ -1,6 +1,15 @@
 homepage: "https://www.spectaclehq.com"
 documentation: "https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm"
 versions:
+  - sha: 68e7fc5693d9179a641d3f22f4265b500000265d
+    changeNotes: |
+      Recognise a visitor the container cannot see a cookie for
+
+        - The anonymous id can be supplied on the event as `sp_anonymous_id`,
+          or set on the tag, for a host whose requests cannot carry the
+          visitor's cookie -- a Shopify custom pixel, for instance
+        - Fixed the ecommerce currency being read from the revenue amount,
+          which left every purchase sent this way with no currency against it
   - sha: 8134ecaf8d04593474a29920fd5a8ec89d091fe2
     changeNotes: |
       Initial release of Spectacle GTM Server-Side template
