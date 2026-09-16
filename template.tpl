@@ -1239,7 +1239,7 @@ ___SERVER_PERMISSIONS___
                     "string": "any"
                   }
                 ]
-              },
+              }
             ]
           }
         }
