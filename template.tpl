@@ -131,7 +131,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "anonymousId",
         "displayName": "Anonymous id",
         "simpleValueType": true,
-        "help": "Only needed when the event reaches this container from somewhere that cannot send the visitor\u0027s cookie, such as a Shopify custom pixel. Map it to the id that host read on the page. Leave empty to use the sp__anon_id cookie."
+        "help": "Only needed when the event reaches this container from somewhere that cannot send the visitor\u0027s cookie, such as a Shopify custom pixel. Leave empty to use the sp_anonymous_id event parameter if the event carries one, then the sp__anon_id cookie."
       }
     ]
   },
@@ -462,6 +462,7 @@ const getRemoteAddress = require('getRemoteAddress');
 const ANON_COOKIE_KEY = 'sp__anon_id';
 const USER_COOKIE_KEY = 'sp__user_id';
 const TRANSACTION_DEDUP_COOKIE_KEY = 'sp__transaction_ids';
+const ANON_ID_EVENT_KEY = 'sp_anonymous_id';
 const COOKIE_EXPIRY_DAYS = 365;
 
 /**
@@ -489,16 +490,24 @@ function generateAnonymousId() {
  * browser.cookie.get() in Shopify's case -- and pass it to this tag, which is
  * the only thing that joins the order to the visit that caused it.
  *
- * A supplied id is deliberate configuration, so it wins over the cookie and is
- * written back, leaving one id in play rather than two.
+ * The id may arrive two ways. The tag field is the explicit override, for a
+ * setup nobody anticipated. The sp_anonymous_id event parameter is the one our
+ * own integration code uses: a snippet we ship can put the id on the event and
+ * work in any container without the merchant configuring this tag at all. The
+ * parameter is deliberately not named with an `x-` prefix, which Google
+ * reserves for its own internal parameters.
+ *
+ * A supplied id is deliberate configuration either way, so it wins over the
+ * cookie and is written back, leaving one id in play rather than two.
  */
 function getSuppliedAnonymousId() {
-  if (!data.anonymousId) {
+  const supplied = data.anonymousId || getEventData(ANON_ID_EVENT_KEY);
+  if (!supplied) {
     return null;
   }
 
-  const supplied = makeString(data.anonymousId);
-  return supplied.length > 0 ? supplied : null;
+  const value = makeString(supplied);
+  return value.length > 0 ? value : null;
 }
 
 /**
