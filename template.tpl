@@ -861,12 +861,14 @@ function handleTrack() {
   if (data.useGA4EcomData) {
     const transactionId = getEventData('transaction_id');
     if (transactionId) {
-      // Don't send duplicate transactions
-      if (hasTransactionId(transactionId)) {
-        return;
+      // Only purchases are unique by order id. Refunds can repeat for partial amounts.
+      if (eventName === 'purchase') {
+        if (hasTransactionId(transactionId)) {
+          data.gtmOnSuccess();
+          return;
+        }
+        storeTransactionId(transactionId);
       }
-
-      storeTransactionId(transactionId);
       properties.transactionId = transactionId;
     }
 
@@ -892,7 +894,7 @@ function handleTrack() {
 
   for (let i = 0; i < eventProperties.length; i++) {
     const prop = eventProperties[i];
-    if (prop.key && prop.value) {
+    if (prop.key && prop.value !== undefined && prop.value !== null) {
       properties[prop.key] = prop.value;
     }
   }
