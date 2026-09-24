@@ -536,6 +536,8 @@ const COOKIE_EXPIRY_DAYS = 365;
 const IS_SERVER_EVENT = data.eventSource === 'server';
 const SERVER_API_URL = 'https://api.spectaclehq.com/tracking';
 const SERVER_USER_AGENT = 'spectacle-gtm-server-template';
+const SERVER_CONTENT_TYPE = 'application/json';
+const BROWSER_CONTENT_TYPE = 'text/plain';
 const SERVER_ENDPOINTS = {
   '/p': '/page',
   '/i': '/identify',
@@ -1075,7 +1077,7 @@ function sendToSpectacle(endpoint, payload) {
     url,
     {
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': IS_SERVER_EVENT ? SERVER_CONTENT_TYPE : BROWSER_CONTENT_TYPE,
         'User-Agent': userAgent,
       },
       method: 'POST',
