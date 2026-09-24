@@ -1,6 +1,20 @@
 homepage: "https://www.spectaclehq.com"
 documentation: "https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm"
 versions:
+  - sha: 2e81bf301642dcd3bb90d43590907abb4f8a7af0
+    changeNotes: |
+      Send events from webhooks and other servers
+
+        - New setting: where does this event come from? Choose "A server or
+          webhook" for events your own systems send, such as a payment from
+          Stripe or a deal update from your CRM.
+        - Server events are joined to the visitor with a user id or an
+          anonymous id taken from the payload. Without either, the tag fails
+          and says why, instead of recording a visitor who never existed.
+        - Server events don't read or set cookies, and don't send the sender's
+          ip or user agent as the visitor's.
+        - Fixed a purchase skipped as a duplicate leaving the tag waiting until
+          it timed out.
   - sha: f6510db847c0a59ae37be0174058b0f9ae8870cf
     changeNotes: |
       Fixed the template failing to import
