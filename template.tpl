@@ -975,9 +975,10 @@ function handleTrack() {
   if (data.useGA4EcomData) {
     const transactionId = getEventData('transaction_id');
     if (transactionId) {
-      // Don't send duplicate transactions. A server event has no cookie to
-      // remember them in, so there Spectacle de-duplicates on the id alone.
-      if (!IS_SERVER_EVENT) {
+      // Only purchases are unique by order id. Refunds can repeat for partial
+      // amounts. A server event has no cookie to remember them in, so there
+      // Spectacle de-duplicates on the id alone.
+      if (eventName === 'purchase' && !IS_SERVER_EVENT) {
         if (hasTransactionId(transactionId)) {
           data.gtmOnSuccess();
           return;
@@ -1010,7 +1011,7 @@ function handleTrack() {
 
   for (let i = 0; i < eventProperties.length; i++) {
     const prop = eventProperties[i];
-    if (prop.key && prop.value) {
+    if (prop.key && prop.value !== undefined && prop.value !== null) {
       properties[prop.key] = prop.value;
     }
   }
