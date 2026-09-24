@@ -55,6 +55,56 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
+    "type": "RADIO",
+    "name": "eventSource",
+    "displayName": "Where does this event come from?",
+    "radioItems": [
+      {
+        "value": "browser",
+        "displayValue": "A visitor's browser",
+        "help": "Page views, clicks and form submits forwarded from your website. Spectacle filters out bot traffic."
+      },
+      {
+        "value": "server",
+        "displayValue": "A server or webhook",
+        "help": "Events your own systems send, such as a payment from Stripe or a deal update from your CRM. They have no browser, so tell Spectacle which visitor they belong to below."
+      }
+    ],
+    "simpleValueType": true,
+    "defaultValue": "browser",
+    "alwaysInSummary": true
+  },
+  {
+    "type": "GROUP",
+    "name": "serverVisitor",
+    "displayName": "Visitor",
+    "groupStyle": "NO_ZIPPY",
+    "help": "Fill in at least one, usually with a variable that reads it from the webhook payload. Without it the event cannot be joined to the visitor's journey.",
+    "enablingConditions": [
+      {
+        "paramName": "eventSource",
+        "paramValue": "server",
+        "type": "EQUALS"
+      }
+    ],
+    "subParams": [
+      {
+        "type": "TEXT",
+        "name": "serverUserId",
+        "displayName": "User id",
+        "simpleValueType": true,
+        "help": "The user id you send to Spectacle when the visitor signs up or logs in. Leave empty to use the user_id event parameter."
+      },
+      {
+        "type": "TEXT",
+        "name": "serverAnonymousId",
+        "displayName": "Anonymous id",
+        "simpleValueType": true,
+        "help": "The visitor's sp__anon_id cookie, stored with the order or lead when it was created. Leave empty to use the sp_anonymous_id event parameter."
+      }
+    ]
+  },
+  {
     "type": "SELECT",
     "name": "methodType",
     "displayName": "Method Type",
@@ -84,7 +134,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "lensEnabled",
     "displayName": "Spectacle Lens",
     "checkboxText": "Enable Lens",
-    "help": "Spectacle Lens can reveal company data of anonymous visitors. <a href='https://www.spectaclehq.com/docs/features/lens'>Learn more</a>",
+    "help": "Spectacle Lens can reveal company data of anonymous visitors. It needs the visitor\u0027s ip, so it only works for events from a visitor\u0027s browser. <a href='https://www.spectaclehq.com/docs/features/lens'>Learn more</a>",
     "simpleValueType": true,
     "enablingConditions": [
       {
@@ -99,6 +149,13 @@ ___TEMPLATE_PARAMETERS___
     "name": "advanced",
     "displayName": "Advanced Configuration",
     "groupStyle": "ZIPPY_CLOSED",
+    "enablingConditions": [
+      {
+        "paramName": "eventSource",
+        "paramValue": "server",
+        "type": "NOT_EQUALS"
+      }
+    ],
     "subParams": [
       {
         "type": "TEXT",
@@ -466,6 +523,27 @@ const ANON_ID_EVENT_KEY = 'sp_anonymous_id';
 const COOKIE_EXPIRY_DAYS = 365;
 
 /**
+ * Where the event comes from decides where it is sent: events from a
+ * visitor's browser go to the tracking host, events from a server or webhook
+ * (Stripe, a CRM) go to the public api.
+ *
+ * A server event has no visitor on the other end of the request, so there
+ * are no cookies to read or set, and the caller's ip and user agent belong to
+ * the webhook sender rather than the visitor: none of them are sent.
+ *
+ * Tags saved before this choice existed have no eventSource and stay browser.
+ */
+const IS_SERVER_EVENT = data.eventSource === 'server';
+const SERVER_API_URL = 'https://api.spectaclehq.com/tracking';
+const SERVER_USER_AGENT = 'spectacle-gtm-server-template';
+const SERVER_ENDPOINTS = {
+  '/p': '/page',
+  '/i': '/identify',
+  '/t': '/track',
+  '/g': '/group'
+};
+
+/**
  * Generate UUID v4 compatible anonymous ID
  */
 function generateAnonymousId() {
@@ -501,7 +579,9 @@ function generateAnonymousId() {
  * cookie and is written back, leaving one id in play rather than two.
  */
 function getSuppliedAnonymousId() {
-  const supplied = data.anonymousId || getEventData(ANON_ID_EVENT_KEY);
+  const supplied =
+    (IS_SERVER_EVENT ? data.serverAnonymousId : data.anonymousId) ||
+    getEventData(ANON_ID_EVENT_KEY);
   if (!supplied) {
     return null;
   }
@@ -515,6 +595,11 @@ function getSuppliedAnonymousId() {
  */
 function getOrCreateAnonymousId() {
   let anonymousId = getSuppliedAnonymousId();
+
+  // A made-up id would tie the event to a visitor who never existed
+  if (IS_SERVER_EVENT) {
+    return anonymousId;
+  }
 
   const anonCookieValues = getCookieValues(ANON_COOKIE_KEY);
   const cookieAnonymousId =
@@ -570,7 +655,7 @@ function getStoredUserId() {
  * Store user ID when identified
  */
 function storeUserId(userId) {
-  if (userId) {
+  if (userId && !IS_SERVER_EVENT) {
     setCookie(USER_COOKIE_KEY, makeString(userId), {
       domain: getCookieDomain(data.cookieDomain),
       path: '/',
@@ -679,6 +764,10 @@ function buildPageContext() {
  * Build base payload matching your Segment-like API format
  */
 function buildBasePayload(method) {
+  if (IS_SERVER_EVENT) {
+    return buildServerPayload(method);
+  }
+
   const now = getTimestampMillis();
   const anonymousId = getOrCreateAnonymousId();
   const userId = getStoredUserId() || getEventData('user_id') || null;
@@ -714,6 +803,29 @@ function buildBasePayload(method) {
     lens: data.lensEnabled,
     userId: userId,
     anonymousId: anonymousId,
+    writeKey: data.workspaceId,
+  };
+}
+
+/**
+ * Build the payload for an event that has no browser behind it. The page comes
+ * from the event data, which the sender filled in about the visitor; the
+ * request's ip and user agent describe the sender itself and are left out.
+ */
+function buildServerPayload(method) {
+  const userId = data.serverUserId || getEventData('user_id') || null;
+  const pageContext = buildPageContext();
+
+  return {
+    type: method,
+    context: {
+      timezone: getEventData('timezone') || 'UTC',
+      campaign: extractCampaign(pageContext.url),
+      page: pageContext
+    },
+    lens: false,
+    userId: userId ? makeString(userId) : null,
+    anonymousId: getOrCreateAnonymousId(),
     writeKey: data.workspaceId,
   };
 }
@@ -861,12 +973,16 @@ function handleTrack() {
   if (data.useGA4EcomData) {
     const transactionId = getEventData('transaction_id');
     if (transactionId) {
-      // Don't send duplicate transactions
-      if (hasTransactionId(transactionId)) {
-        return;
-      }
+      // Don't send duplicate transactions. A server event has no cookie to
+      // remember them in, so there Spectacle de-duplicates on the id alone.
+      if (!IS_SERVER_EVENT) {
+        if (hasTransactionId(transactionId)) {
+          data.gtmOnSuccess();
+          return;
+        }
 
-      storeTransactionId(transactionId);
+        storeTransactionId(transactionId);
+      }
       properties.transactionId = transactionId;
     }
 
@@ -938,7 +1054,16 @@ function handleGroup() {
  * Send request to Spectacle
  */
 function sendToSpectacle(endpoint, payload) {
-  const url = data.baseUrl + endpoint;
+  if (IS_SERVER_EVENT && !payload.userId && !payload.anonymousId) {
+    logToConsole('Spectacle: A server event needs a user id or an anonymous id to know which visitor it belongs to');
+    data.gtmOnFailure();
+    return;
+  }
+
+  const url = IS_SERVER_EVENT
+    ? SERVER_API_URL + SERVER_ENDPOINTS[endpoint]
+    : data.baseUrl + endpoint;
+  const userAgent = IS_SERVER_EVENT ? SERVER_USER_AGENT : payload.context.userAgent;
 
   if (data.debugMode) {
     logToConsole('Spectacle: Sending to', url);
@@ -951,7 +1076,7 @@ function sendToSpectacle(endpoint, payload) {
     {
       headers: {
         'Content-Type': 'text/plain',
-        'User-Agent': payload.context.userAgent,
+        'User-Agent': userAgent,
       },
       method: 'POST',
       timeout: 5000
@@ -1023,6 +1148,10 @@ ___SERVER_PERMISSIONS___
               {
                 "type": 1,
                 "string": "https://t.spectaclehq.com/*"
+              },
+              {
+                "type": 1,
+                "string": "https://api.spectaclehq.com/tracking/*"
               }
             ]
           }
