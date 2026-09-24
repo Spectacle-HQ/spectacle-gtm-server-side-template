@@ -541,7 +541,6 @@ const COOKIE_EXPIRY_DAYS = 365;
 const IS_SERVER_EVENT = data.eventSource === 'server';
 const SERVER_API_URL = 'https://api.spectaclehq.com/tracking';
 const SERVER_USER_AGENT = 'spectacle-gtm-server-template';
-// Each host maps exactly one content type and answers 415 to any other
 const SERVER_CONTENT_TYPE = 'application/json';
 const BROWSER_CONTENT_TYPE = 'text/plain';
 const SERVER_ENDPOINTS = {
