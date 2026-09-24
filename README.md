@@ -10,6 +10,7 @@ Official Google Tag Manager Server-Side template for Spectacle analytics integra
 - 🏢 Group/organization tracking
 - 🔍 Spectacle Lens support
 - 🍪 Anonymous id continuity, including hosts that cannot send the visitor's cookie (a Shopify custom pixel, for instance) — pass one on the event as `sp_anonymous_id`, or set it on the tag
+- 🔌 Events from webhooks and other servers (Stripe, your CRM): choose "A server or webhook" as the source and map the visitor's anonymous id or user id from the payload
 - 🐛 Debug mode for development
 
 ## Installation
