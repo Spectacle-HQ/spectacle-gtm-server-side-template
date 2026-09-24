@@ -23,6 +23,11 @@ Official Google Tag Manager Server-Side template for Spectacle analytics integra
 ## Documentation
 Visit [spectaclehq.com/docs/installation/google-tag-manager-gtm](https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm) for the complete setup guide.
 
+## Development
+
+Run `node --test tests/*.test.mjs` with Node.js 22 or later. The tests execute
+the template's track handler with mocked GTM APIs and validate its JSON sections.
+
 ## Support
 - 📖 [Documentation](https://www.spectaclehq.com/docs/installation/google-tag-manager-gtm)
 - 🐛 [Issues](https://github.com/Spectacle-HQ/spectacle-gtm-server-side-template/issues)
