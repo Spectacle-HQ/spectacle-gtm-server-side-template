@@ -1,0 +1,146 @@
+{
+  "page": {
+    "cookieReads": [
+      "sp__anon_id",
+      "sp__user_id"
+    ],
+    "cookieWrites": [
+      {
+        "name": "sp__anon_id",
+        "value": "anon-from-cookie",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      }
+    ],
+    "sent": [
+      {
+        "url": "https://t.spectaclehq.com/p",
+        "headers": {
+          "Content-Type": "text/plain",
+          "User-Agent": "Mozilla/5.0"
+        },
+        "body": "{\"type\":\"page\",\"context\":{\"timezone\":\"Europe/Amsterdam\",\"campaign\":{\"source\":\"google\",\"medium\":\"cpc\"},\"userAgent\":\"Mozilla/5.0\",\"page\":{\"path\":\"/pricing\",\"referrer\":\"https://www.google.com/\",\"search\":\"?utm_source=google&utm_medium=cpc\",\"title\":\"Pricing\",\"url\":\"https://example.com/pricing?utm_source=google&utm_medium=cpc#plans\"},\"locale\":\"nl-NL\"},\"ip\":\"203.0.113.7\",\"lens\":true,\"userId\":\"user-from-cookie\",\"anonymousId\":\"anon-from-cookie\",\"writeKey\":\"ws_1\",\"properties\":{\"title\":\"Pricing\",\"url\":\"https://example.com/pricing?utm_source=google&utm_medium=cpc#plans\",\"path\":\"/pricing\",\"hash\":\"#plans\",\"search\":\"?utm_source=google&utm_medium=cpc\",\"width\":1440,\"height\":900}}"
+      }
+    ],
+    "outcome": "success"
+  },
+  "identify": {
+    "cookieReads": [
+      "sp__anon_id",
+      "sp__user_id"
+    ],
+    "cookieWrites": [
+      {
+        "name": "sp__anon_id",
+        "value": "anon-from-cookie",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      },
+      {
+        "name": "sp__user_id",
+        "value": "jane@example.com",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      }
+    ],
+    "sent": [
+      {
+        "url": "https://t.spectaclehq.com/i",
+        "headers": {
+          "Content-Type": "text/plain",
+          "User-Agent": "Mozilla/5.0"
+        },
+        "body": "{\"type\":\"identify\",\"context\":{\"timezone\":\"Europe/Amsterdam\",\"campaign\":{\"source\":\"google\",\"medium\":\"cpc\"},\"userAgent\":\"Mozilla/5.0\",\"page\":{\"path\":\"/pricing\",\"referrer\":\"https://www.google.com/\",\"search\":\"?utm_source=google&utm_medium=cpc\",\"title\":\"Pricing\",\"url\":\"https://example.com/pricing?utm_source=google&utm_medium=cpc#plans\"},\"locale\":\"nl-NL\"},\"ip\":\"203.0.113.7\",\"lens\":true,\"userId\":\"jane@example.com\",\"anonymousId\":\"anon-from-cookie\",\"writeKey\":\"ws_1\",\"traits\":{\"email\":\"jane@example.com\",\"firstName\":\"Jane\"}}"
+      }
+    ],
+    "outcome": "success"
+  },
+  "purchase": {
+    "cookieReads": [
+      "sp__anon_id",
+      "sp__user_id",
+      "sp__transaction_ids",
+      "sp__transaction_ids"
+    ],
+    "cookieWrites": [
+      {
+        "name": "sp__anon_id",
+        "value": "anon-from-cookie",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      },
+      {
+        "name": "sp__transaction_ids",
+        "value": "order-0,order-1",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      }
+    ],
+    "sent": [
+      {
+        "url": "https://t.spectaclehq.com/t",
+        "headers": {
+          "Content-Type": "text/plain",
+          "User-Agent": "Mozilla/5.0"
+        },
+        "body": "{\"type\":\"track\",\"context\":{\"timezone\":\"Europe/Amsterdam\",\"campaign\":{\"source\":\"google\",\"medium\":\"cpc\"},\"userAgent\":\"Mozilla/5.0\",\"page\":{\"path\":\"/pricing\",\"referrer\":\"https://www.google.com/\",\"search\":\"?utm_source=google&utm_medium=cpc\",\"title\":\"Pricing\",\"url\":\"https://example.com/pricing?utm_source=google&utm_medium=cpc#plans\"},\"locale\":\"nl-NL\"},\"ip\":\"203.0.113.7\",\"lens\":true,\"userId\":\"user-from-cookie\",\"anonymousId\":\"anon-from-cookie\",\"writeKey\":\"ws_1\",\"event\":\"purchase\",\"properties\":{\"transactionId\":\"order-1\",\"revenue\":\"4950\",\"currency\":\"EUR\"}}"
+      }
+    ],
+    "outcome": "success"
+  },
+  "group": {
+    "cookieReads": [
+      "sp__anon_id",
+      "sp__user_id"
+    ],
+    "cookieWrites": [
+      {
+        "name": "sp__anon_id",
+        "value": "anon-from-cookie",
+        "options": {
+          "domain": ".example.com",
+          "path": "/",
+          "max-age": 31536000,
+          "secure": true,
+          "sameSite": "lax"
+        }
+      }
+    ],
+    "sent": [
+      {
+        "url": "https://t.spectaclehq.com/g",
+        "headers": {
+          "Content-Type": "text/plain",
+          "User-Agent": "Mozilla/5.0"
+        },
+        "body": "{\"type\":\"group\",\"context\":{\"timezone\":\"Europe/Amsterdam\",\"campaign\":{\"source\":\"google\",\"medium\":\"cpc\"},\"userAgent\":\"Mozilla/5.0\",\"page\":{\"path\":\"/pricing\",\"referrer\":\"https://www.google.com/\",\"search\":\"?utm_source=google&utm_medium=cpc\",\"title\":\"Pricing\",\"url\":\"https://example.com/pricing?utm_source=google&utm_medium=cpc#plans\"},\"locale\":\"nl-NL\"},\"ip\":\"203.0.113.7\",\"lens\":true,\"userId\":\"user-from-cookie\",\"anonymousId\":\"anon-from-cookie\",\"writeKey\":\"ws_1\",\"groupId\":\"acme\",\"traits\":{}}"
+      }
+    ],
+    "outcome": "success"
+  }
+}
