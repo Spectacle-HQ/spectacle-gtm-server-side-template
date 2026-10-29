@@ -546,6 +546,27 @@ const SERVER_ENDPOINTS = {
 };
 
 /**
+ * Whether the visitor denied analytics_storage, read the way GA4 sends it.
+ *
+ * In advanced consent mode the Google tag still sends a hit when
+ * analytics_storage is denied, but GA4 then reads and writes no cookie. The
+ * GA4 client hands the state over as x-ga-gcs: `G1`, the ad_storage digit,
+ * then the analytics_storage digit, each 1 (granted), 0 (denied) or - (not
+ * set). A hit without one (an older client, a non-GA4 hit) or with one of
+ * another shape behaves as it always has.
+ */
+function isAnalyticsStorageDenied(gcs) {
+  return getType(gcs) === 'string' &&
+    gcs.length === 4 &&
+    gcs.substring(0, 2) === 'G1' &&
+    '01-'.indexOf(gcs.substring(2, 3)) > -1 &&
+    gcs.substring(3, 4) === '0';
+}
+
+const ANALYTICS_STORAGE_DENIED =
+  !IS_SERVER_EVENT && isAnalyticsStorageDenied(getEventData('x-ga-gcs'));
+
+/**
  * Generate UUID v4 compatible anonymous ID
  */
 function generateAnonymousId() {
@@ -596,6 +617,13 @@ function getSuppliedAnonymousId() {
  * Get or create anonymous ID
  */
 function getOrCreateAnonymousId() {
+  // Like GA4's cookieless ping: an id for this hit alone, read from and stored
+  // nowhere. A supplied id is the visitor's cookie read by the host, so it is
+  // left out too.
+  if (ANALYTICS_STORAGE_DENIED) {
+    return generateAnonymousId();
+  }
+
   let anonymousId = getSuppliedAnonymousId();
 
   // A made-up id would tie the event to a visitor who never existed
@@ -772,7 +800,9 @@ function buildBasePayload(method) {
 
   const now = getTimestampMillis();
   const anonymousId = getOrCreateAnonymousId();
-  const userId = getStoredUserId() || getEventData('user_id') || null;
+  // GA4 still sends a user_id it was given when analytics_storage is denied
+  const storedUserId = ANALYTICS_STORAGE_DENIED ? null : getStoredUserId();
+  const userId = storedUserId || getEventData('user_id') || null;
 
   // Get page and campaign context
   const pageContext = buildPageContext();
@@ -792,7 +822,7 @@ function buildBasePayload(method) {
                 getEventData('user_properties.language') ||
                 null;
 
-  return {
+  const payload = {
     type: method,
     context: {
       timezone: timezone,
@@ -807,6 +837,13 @@ function buildBasePayload(method) {
     anonymousId: anonymousId,
     writeKey: data.workspaceId,
   };
+
+  // Added only when denied, so every other payload stays byte-for-byte the same
+  if (ANALYTICS_STORAGE_DENIED) {
+    payload.analyticsStorage = 'denied';
+  }
+
+  return payload;
 }
 
 /**
@@ -884,6 +921,16 @@ function handlePage() {
  * Handle IDENTIFY method
  */
 function handleIdentify() {
+  // GA4 never receives the email, and without consent there is no stored
+  // visitor to join it to, so the identify is not sent.
+  if (ANALYTICS_STORAGE_DENIED) {
+    if (data.debugMode) {
+      logToConsole('Spectacle: analytics_storage is denied, the identify is not sent');
+    }
+    data.gtmOnSuccess();
+    return;
+  }
+
   const payload = buildBasePayload('identify');
   const traits = {};
 
@@ -976,9 +1023,10 @@ function handleTrack() {
     const transactionId = getEventData('transaction_id');
     if (transactionId) {
       // Only purchases are unique by order id. Refunds can repeat for partial
-      // amounts. A server event has no cookie to remember them in, so there
-      // Spectacle de-duplicates on the id alone.
-      if (eventName === 'purchase' && !IS_SERVER_EVENT) {
+      // amounts. A server event has no cookie to remember them in, and a hit
+      // with analytics_storage denied may not use one, so there Spectacle
+      // de-duplicates on the id alone.
+      if (eventName === 'purchase' && !IS_SERVER_EVENT && !ANALYTICS_STORAGE_DENIED) {
         if (hasTransactionId(transactionId)) {
           data.gtmOnSuccess();
           return;

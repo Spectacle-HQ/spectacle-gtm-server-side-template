@@ -44,6 +44,7 @@ function track(
         "sendToSpectacle",
         "logToConsole",
         "IS_SERVER_EVENT",
+        "ANALYTICS_STORAGE_DENIED",
         `${handler}\nreturn handleTrack();`,
     );
     run(
@@ -66,6 +67,7 @@ function track(
         },
         () => {},
         serverEvent,
+        false,
     );
     return { sent, completed };
 }
