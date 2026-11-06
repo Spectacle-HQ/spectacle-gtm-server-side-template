@@ -486,6 +486,32 @@ ___TEMPLATE_PARAMETERS___
     ]
   },
   {
+    "type": "GROUP",
+    "name": "consentSettings",
+    "displayName": "Consent",
+    "groupStyle": "ZIPPY_CLOSED",
+    "subParams": [
+      {
+        "type": "RADIO",
+        "name": "analyticsStorageConsent",
+        "radioItems": [
+          {
+            "value": "required",
+            "displayValue": "Respect the visitor's analytics consent",
+            "help": "When the hit says <i>analytics_storage</i> is denied, in Google consent mode or Stape's Data Tag, the tag sets no cookie and sends nothing to Spectacle. Hits without a consent state are sent as usual."
+          },
+          {
+            "value": "optional",
+            "displayValue": "Send data always",
+            "help": "Sets cookies and sends data whatever the visitor chose."
+          }
+        ],
+        "simpleValueType": true,
+        "defaultValue": "required"
+      }
+    ]
+  },
+  {
     "type": "CHECKBOX",
     "name": "debugMode",
     "checkboxText": "Enable debug logging",
@@ -514,6 +540,7 @@ const makeInteger = require('makeInteger');
 const makeNumber = require('makeNumber');
 const Math = require('Math');
 const getRemoteAddress = require('getRemoteAddress');
+const getRequestQueryParameter = require('getRequestQueryParameter');
 
 // Constants matching your pixel implementation
 const ANON_COOKIE_KEY = 'sp__anon_id';
@@ -1100,6 +1127,39 @@ function sendToSpectacle(endpoint, payload) {
     logToConsole('Spectacle: Request failed', error);
     data.gtmOnFailure();
   });
+}
+
+/**
+ * Whether this hit says the visitor denied analytics_storage.
+ *
+ * Stape's Data Tag sends consent_state, a boolean per consent type. Google's
+ * tag sends gcs: `G1`, the ad_storage digit, then the analytics_storage digit,
+ * each 1 (granted), 0 (denied) or - (not set). It rides the request's query
+ * string, batched hits included, and the GA4 client may copy it to the event
+ * data as x-ga-gcs. No consent state, or one of another shape, is not a
+ * denial: the site may not use consent mode at all.
+ */
+function isAnalyticsStorageDenied() {
+  const stapeState = getEventData('consent_state.analytics_storage');
+  if (getType(stapeState) === 'boolean') {
+    return !stapeState;
+  }
+
+  const gcs = getEventData('x-ga-gcs') || getRequestQueryParameter('gcs');
+  return getType(gcs) === 'string' &&
+    gcs.length === 4 &&
+    gcs.substring(0, 2) === 'G1' &&
+    '01-'.indexOf(gcs.substring(2, 3)) > -1 &&
+    gcs.substring(3, 4) === '0';
+}
+
+// Before any cookie is read or set. Tags saved before this setting existed
+// have none, and respect consent as well.
+if (data.analyticsStorageConsent !== 'optional' && isAnalyticsStorageDenied()) {
+  if (data.debugMode) {
+    logToConsole('Spectacle: analytics_storage is denied, nothing is stored or sent');
+  }
+  return data.gtmOnSuccess();
 }
 
 // Main execution
