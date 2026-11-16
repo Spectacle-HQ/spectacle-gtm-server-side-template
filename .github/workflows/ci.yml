@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-template:
+    # The ruleset on main requires this check by name: rename it there too.
+    name: Validate template
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Tag Manager refuses to import a template with a section that does not
+      # parse, and main is what the gallery and the download link serve.
+      - name: Parse template.tpl
+        run: |
+          node --input-type=module <<'EOF'
+          import { readFileSync } from 'node:fs';
+          import { compileFunction } from 'node:vm';
+
+          const tpl = readFileSync('template.tpl', 'utf8');
+          const markers = [...tpl.matchAll(/^___([A-Z_]+)___$/gm)];
+          const sections = markers.map((marker, i) => ({
+            name: marker[1],
+            body: tpl.slice(marker.index + marker[0].length, markers[i + 1]?.index),
+            line: tpl.slice(0, marker.index).split('\n').length,
+          }));
+
+          const check = (pattern, parse) => {
+            const matching = sections.filter(({ name }) => pattern.test(name));
+            if (matching.length === 0) throw new Error(`No section matches ${pattern}`);
+            for (const section of matching) {
+              try {
+                parse(section);
+              } catch (error) {
+                error.message = `${section.name} (starts at line ${section.line}): ${error.message}`;
+                throw error;
+              }
+            }
+          };
+
+          const json = ({ body }) => JSON.parse(body);
+          check(/^INFO$/, json);
+          check(/^TEMPLATE_PARAMETERS$/, json);
+          check(/_PERMISSIONS$/, json);
+          // Sandboxed JavaScript runs as a function body, so a top-level return is legal.
+          check(/^SANDBOXED_JS_FOR_/, ({ body, line }) =>
+            compileFunction(body, [], { filename: 'template.tpl', lineOffset: line - 1 }),
+          );
+          EOF
